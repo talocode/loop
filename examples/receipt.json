@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "product": "@talocode/loop",
+  "version": "0.1.0",
+  "query": "Talocode official mint",
+  "url": "https://talocode.site/llms.txt",
+  "traceId": "loop_c08f364b-ad00-478b-8011-e53d481f233a",
+  "verify": {
+    "claim": "6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory",
+    "found": true
+  },
+  "steps": ["search", "verify", "trace", "remember"]
+}
