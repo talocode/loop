@@ -1,20 +1,34 @@
 import { runLoop } from "./loop.mjs";
+import { runBrief } from "./brief.mjs";
 
 export class TalocodeLoop {
   constructor(options = {}) {
     this.baseUrl = options.baseUrl || process.env.TALOCODE_LOOP_URL || "";
     this.apiKey = options.apiKey || process.env.TALOCODE_API_KEY || "";
   }
-  async run(input) {
-    if (!this.baseUrl) return runLoop(input);
-    const response = await fetch(new URL("/v1/loop/run", this.baseUrl), {
+  async request(path, input) {
+    if (!this.baseUrl) return null;
+    const response = await fetch(new URL(path, this.baseUrl), {
       method: "POST",
       headers: { "content-type": "application/json", ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}) },
       body: JSON.stringify(input),
     });
-    if (!response.ok) throw new Error(`loop ${response.status}`);
-    return response.json();
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok && response.status !== 422) {
+      const error = new Error(body.message || body.error || `loop ${response.status}`);
+      error.status = response.status;
+      error.body = body;
+      throw error;
+    }
+    return body;
+  }
+  async run(input) {
+    return (await this.request("/v1/loop/run", input)) || runLoop(input);
+  }
+  async brief(input) {
+    const urls = input.urls || (input.url ? [input.url] : []);
+    return (await this.request("/v1/loop/brief", { question: input.question || input.query || "", urls })) || runBrief({ ...input, urls });
   }
 }
 
-export { runLoop };
+export { runLoop, runBrief };

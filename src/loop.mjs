@@ -36,5 +36,5 @@ export async function runLoop({ query, url, claim }) {
   const verified = verify({ text: searched.text, claim });
   const traced = trace([searched, verified]);
   const remembered = await remember({ traceId: traced.id, query, claim, ok: traced.ok });
-  return { ok: traced.ok, product: "@talocode/loop", version: "0.1.0", query, url, traceId: traced.id, steps: [searched, verified, traced, remembered].map(({ text, ...step }) => step) };
+  return { ok: traced.ok, product: "@talocode/loop", version: "0.2.0", query, url, traceId: traced.id, steps: [searched, verified, traced, remembered].map(({ text, ...step }) => step) };
 }

@@ -6,7 +6,7 @@ export function startServer(port = 8787) {
     const url = new URL(req.url || "/", "http://localhost");
     if (req.method === "GET" && url.pathname === "/v1/loop/health") {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true, product: "@talocode/loop", version: "0.1.0" }));
+      res.end(JSON.stringify({ ok: true, product: "@talocode/loop", version: "0.2.0" }));
       return;
     }
     if (req.method === "POST" && url.pathname === "/v1/loop/run") {
