@@ -45,7 +45,7 @@ export function briefFromSources({ question, sources }) {
   return {
     ok: failed.length === 0 && rows.length > 0,
     product: "@talocode/loop",
-    version: "0.2.0",
+    version: "0.3.0",
     question,
     recommendation,
     reason: failed.length

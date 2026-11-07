@@ -1,4 +1,4 @@
-import { runLoop } from "./loop.mjs";
+import { runLoop, runAudit } from "./loop.mjs";
 import { runBrief } from "./brief.mjs";
 
 export class TalocodeLoop {
@@ -29,6 +29,10 @@ export class TalocodeLoop {
     const urls = input.urls || (input.url ? [input.url] : []);
     return (await this.request("/v1/loop/brief", { question: input.question || input.query || "", urls })) || runBrief({ ...input, urls });
   }
+  async audit(input) {
+    const claims = input.claims || (input.claim ? [input.claim] : []);
+    return (await this.request("/v1/loop/audit", { query: input.query, url: input.url, claims })) || runAudit({ ...input, claims });
+  }
 }
 
-export { runLoop, runBrief };
+export { runLoop, runBrief, runAudit };

@@ -4,7 +4,7 @@ Search a public page, verify a claim against that page, and keep the receipt.
 
 The same call is a CLI, an SDK, a local MCP server, and a hosted API. A failing verify stays a failed receipt. It does not pretend the run succeeded.
 
-A hosted credit moves only when a source loads. A timeout or an HTTP error costs nothing. The local CLI does not use credits.
+A hosted credit moves only when a source loads. Checking more claims on that same page does not add a credit. A timeout or an HTTP error costs nothing. The local CLI does not use credits.
 
 ## Install
 
@@ -31,13 +31,24 @@ talocode-loop brief \
   --url=https://talocode.site/llms.txt
 ```
 
+Audit checks up to 8 claims against one page. Repeat `--claim` for each one. Locally this spends nothing.
+
+```bash
+talocode-loop audit \
+  --query="Talocode token facts" \
+  --url=https://talocode.site/llms.txt \
+  --claim=6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory \
+  --claim="500,000 TCODE fixed" \
+  --claim="unlimited supply"
+```
+
 Local server, no credits:
 
 ```bash
 talocode-loop serve --port=8787
 ```
 
-`GET /v1/loop/health` and `POST /v1/loop/run`.
+`GET /v1/loop/health`, `POST /v1/loop/run`, and `POST /v1/loop/audit`.
 
 ## SDK
 
@@ -54,6 +65,16 @@ await loop.run({
 await loop.brief({
   question: "Is this source enough?",
   urls: ["https://talocode.site/llms.txt"],
+});
+
+await loop.audit({
+  query: "Talocode token facts",
+  url: "https://talocode.site/llms.txt",
+  claims: [
+    "6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory",
+    "500,000 TCODE fixed",
+    "unlimited supply",
+  ],
 });
 ```
 
@@ -72,7 +93,7 @@ const hosted = new TalocodeLoop({
 talocode-loop mcp
 ```
 
-Tools: `loop_run` and `loop_brief`.
+Tools: `loop_run`, `loop_brief`, and `loop_audit`.
 
 The hosted MCP is `https://api.talocode.site/mcp` with the same API key. Hosted tools:
 
@@ -83,6 +104,7 @@ The hosted MCP is `https://api.talocode.site/mcp` with the same API key. Hosted 
 | `loop_capabilities` | free |
 | `loop_run` | 1 if the page loads |
 | `loop_brief` | 1 per page that loads, maximum 5 |
+| `loop_audit` | 1 if the page loads, up to 8 claims |
 
 ## Hosted API
 
@@ -95,6 +117,7 @@ Base URL: `https://api.talocode.site`
 | GET | `/v1/loop/capabilities` | no | 0 |
 | POST | `/v1/loop/run` | Bearer key | 1 if the page loads |
 | POST | `/v1/loop/brief` | Bearer key | 1 per page that loads |
+| POST | `/v1/loop/audit` | Bearer key | 1 if the page loads, up to 8 claims |
 
 ```bash
 curl -s https://api.talocode.site/v1/loop/run \
@@ -103,7 +126,7 @@ curl -s https://api.talocode.site/v1/loop/run \
   -d '{"query":"Talocode official mint","url":"https://talocode.site/llms.txt","claim":"6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory"}'
 ```
 
-The hosted route accepts public `https` URLs only. It refuses localhost, private addresses, and link-local addresses. The receipt returns the status, up to eight matching lines, and whether the claim was present. It does not return the page.
+The hosted route accepts public `https` URLs only. It refuses localhost, private addresses, and link-local addresses. The receipt returns the status, up to eight matching lines, whether each claim was present, and the line that contained it. It does not return the page. Eight claims on one page are still one credit.
 
 `usage.credits` is `0` when nothing loaded.
 
