@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 
 export function excerptFor(text, claim, max = 180) {
   const line = String(text || "").split("\n").find((row) => row.includes(claim));
@@ -33,15 +33,44 @@ export function judgeClaims(text, claims) {
 export function summarizeAudit({ loaded, results }) {
   const total = results.length;
   const foundCount = results.filter((row) => row.found).length;
+  const closed = results.filter((row) => row.opens === false).length;
+  const closedNote = closed ? ` ${closed} linked address${closed === 1 ? "" : "es"} did not open.` : "";
   if (!loaded) return "The page did not load. No credit.";
   if (total === 1) {
     return foundCount
-      ? "The page loaded and the claim was in it. No credit on this machine."
+      ? `The page loaded and the claim was in it.${closedNote} No credit on this machine.`
       : "The page loaded. The claim was not in it. No credit on this machine.";
   }
-  if (foundCount === total) return `The page loaded. All ${total} claims were in it. No credit on this machine.`;
+  if (foundCount === total) return `The page loaded. All ${total} claims were in it.${closedNote} No credit on this machine.`;
   if (foundCount === 0) return `The page loaded. None of the ${total} claims were in it. No credit on this machine.`;
-  return `The page loaded. ${foundCount} of ${total} claims were in it. No credit on this machine.`;
+  return `The page loaded. ${foundCount} of ${total} claims were in it.${closedNote} No credit on this machine.`;
+}
+
+export function httpsUrlsIn(claim) {
+  const matches = String(claim || "").match(/https:\/\/[^\s<>"')\]]+/g) || [];
+  return [...new Set(matches.map((url) => url.replace(/[.,;]+$/g, "")))].slice(0, 2);
+}
+
+export async function openClaimUrls(results, fetchUrl) {
+  const checked = [];
+  for (const row of results) {
+    const urls = row.found ? httpsUrlsIn(row.claim) : [];
+    if (!urls.length) {
+      checked.push({ ...row, opens: null, links: [] });
+      continue;
+    }
+    const links = [];
+    for (const url of urls) {
+      try {
+        const response = await fetchUrl(url);
+        links.push({ url, opens: Boolean(response.ok), status: response.status || 0, error: response.ok ? null : `HTTP ${response.status}` });
+      } catch (error) {
+        links.push({ url, opens: false, status: 0, error: error?.message || "fetch failed" });
+      }
+    }
+    checked.push({ ...row, opens: links.every((link) => link.opens), links });
+  }
+  return checked;
 }
 
 export async function search({ query, url }) {
@@ -100,11 +129,18 @@ export async function runLoop({ query, url, claim }) {
 export async function runAudit({ query, url, claims }) {
   const list = normalizeClaims(claims);
   const searched = await search({ query, url });
-  const results = judgeClaims(searched.ok ? searched.text : "", list).map((row) => (
-    searched.ok ? row : { claim: row.claim, found: false, excerpt: null }
-  ));
+  const results = await openClaimUrls(
+    judgeClaims(searched.ok ? searched.text : "", list).map((row) => (
+      searched.ok ? row : { claim: row.claim, found: false, excerpt: null }
+    )),
+    async (url) => {
+      const response = await fetch(url, { headers: { "user-agent": "talocode-loop/0.3.1" }, signal: AbortSignal.timeout(8000) });
+      return { ok: response.ok, status: response.status };
+    },
+  );
   const foundCount = results.filter((row) => row.found).length;
-  const verified = { name: "verify", ok: foundCount === results.length, checked: results.length, found: foundCount, claims: results };
+  const closed = results.some((row) => row.opens === false);
+  const verified = { name: "verify", ok: foundCount === results.length && !closed, checked: results.length, found: foundCount, claims: results };
   const traced = trace([searched, verified]);
   const remembered = await remember({ traceId: traced.id, query, claim: list.join(" | "), ok: traced.ok });
   return {

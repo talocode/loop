@@ -1,6 +1,6 @@
 {
   "name": "@talocode/loop",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "The Talocode loop: search, verify, trace, remember. CLI, MCP, SDK, and hosted API.",
   "type": "module",
   "bin": { "talocode-loop": "./bin/loop.mjs" },

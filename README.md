@@ -31,7 +31,7 @@ talocode-loop brief \
   --url=https://talocode.site/llms.txt
 ```
 
-Audit checks up to 8 claims against one page. Repeat `--claim` for each one. Locally this spends nothing.
+Audit checks up to 8 claims against one page. Repeat `--claim` for each one. If a claim contains an https address, Loop also opens that address. A string on the page is not enough when the address does not load. Locally this spends nothing.
 
 ```bash
 talocode-loop audit \
